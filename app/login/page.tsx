@@ -8,7 +8,7 @@ export const metadata = { title: "Sign in" };
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-paper">
@@ -22,8 +22,10 @@ export default function LoginPage({
   );
 }
 
-async function LoginContent({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+async function LoginContent({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
   const params = await searchParams;
   const next = params.next?.startsWith("/") && !params.next.startsWith("//") ? params.next : "/subjects";
-  return <LoginForm next={next} setupError={supabaseConfigError()} />;
+  const confirmError =
+    params.error === "confirm" ? "That confirmation link did not sign you in. Create the account again to get a new email." : null;
+  return <LoginForm next={next} setupError={confirmError ?? supabaseConfigError()} />;
 }

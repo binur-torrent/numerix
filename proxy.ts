@@ -29,6 +29,13 @@ export async function proxy(request: NextRequest) {
   }
 
   const { pathname } = request.nextUrl;
+  const hasAuthCode = request.nextUrl.searchParams.has("code") || request.nextUrl.searchParams.has("token_hash");
+  if (hasAuthCode && pathname !== "/auth/callback") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
+
   const isPrivate = pathname.startsWith("/subjects") || pathname.startsWith("/admin");
 
   if (isPrivate && !signedIn) {

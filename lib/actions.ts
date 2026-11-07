@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireUser } from "@/lib/auth";
-import { isListedAdmin, isSupabaseConfigured, supabaseConfigError } from "@/lib/constants";
+import { isListedAdmin, isSupabaseConfigured, siteOrigin, supabaseConfigError } from "@/lib/constants";
 import {
   createSubject as insertSubject,
   deleteTest as removeTest,
@@ -52,7 +52,11 @@ export async function authenticate(_prev: FormState, formData: FormData): Promis
   const supabase = await createClient();
   const result =
     intent === "sign-up"
-      ? await supabase.auth.signUp({ email, password })
+      ? await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${siteOrigin}/auth/callback` },
+        })
       : await supabase.auth.signInWithPassword({ email, password });
 
   if (result.error) return { error: result.error.message };
