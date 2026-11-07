@@ -1,10 +1,9 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireUser } from "@/lib/auth";
-import { isListedAdmin, isSupabaseConfigured, SESSION_COOKIE } from "@/lib/constants";
+import { isListedAdmin, isSupabaseConfigured, supabaseConfigError } from "@/lib/constants";
 import {
   createSubject as insertSubject,
   deleteTest as removeTest,
@@ -14,9 +13,9 @@ import {
 } from "@/lib/data";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { GradeResult, SaveTestInput, SessionUser } from "@/lib/types";
+import type { GradeResult, SaveTestInput } from "@/lib/types";
 
-export type FormState = { error?: string; ok?: boolean } | null;
+export type FormState = { error?: string; notice?: string; ok?: boolean } | null;
 
 function safeNext(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
@@ -36,20 +35,6 @@ async function promoteListedAdmin(userId: string, email: string) {
   await admin.from("profiles").update({ role: "admin" }).eq("id", userId);
 }
 
-async function startDemoSession(email: string) {
-  const role = email.startsWith("admin@") || isListedAdmin(email) ? "admin" : "student";
-  const user: SessionUser = { id: `demo:${email}`, email, role };
-  const jar = await cookies();
-  jar.set(SESSION_COOKIE, JSON.stringify(user), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
-  return role;
-}
-
 export async function authenticate(_prev: FormState, formData: FormData): Promise<FormState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
@@ -61,8 +46,7 @@ export async function authenticate(_prev: FormState, formData: FormData): Promis
   }
 
   if (!isSupabaseConfigured()) {
-    const role = await startDemoSession(email);
-    redirect(next === "/subjects" && role === "admin" ? "/admin" : next);
+    return { error: supabaseConfigError() ?? "Supabase is not configured." };
   }
 
   const supabase = await createClient();
@@ -72,13 +56,19 @@ export async function authenticate(_prev: FormState, formData: FormData): Promis
       : await supabase.auth.signInWithPassword({ email, password });
 
   if (result.error) return { error: result.error.message };
-  if (!result.data.session || !result.data.user) {
-    return { error: "Check your email to confirm the account, then sign in." };
+
+  const user = result.data.user;
+  if (intent === "sign-up" && user && (user.identities?.length ?? 0) === 0) {
+    return { error: "An account with this email already exists. Sign in instead." };
   }
 
-  const jar = await cookies();
-  jar.delete(SESSION_COOKIE);
-  await promoteListedAdmin(result.data.user.id, email);
+  if (!result.data.session || !user) {
+    return {
+      notice: "Account created. Check your email to confirm it, then sign in. The user is already listed in Supabase.",
+    };
+  }
+
+  await promoteListedAdmin(user.id, email);
   redirect(next === "/subjects" && isListedAdmin(email) ? "/admin" : next);
 }
 
@@ -87,8 +77,6 @@ export async function signOut() {
     const supabase = await createClient();
     await supabase.auth.signOut();
   }
-  const jar = await cookies();
-  jar.delete(SESSION_COOKIE);
   redirect("/");
 }
 

@@ -1,16 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isSupabaseConfigured, SESSION_COOKIE } from "@/lib/constants";
+import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "@/lib/constants";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   let signedIn = false;
 
   if (isSupabaseConfigured()) {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
+    const supabase = createServerClient(supabaseUrl(), supabasePublishableKey(), {
         cookies: {
           getAll() {
             return request.cookies.getAll();
@@ -29,8 +26,6 @@ export async function proxy(request: NextRequest) {
     );
     const { data } = await supabase.auth.getUser();
     signedIn = Boolean(data.user);
-  } else {
-    signedIn = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
   }
 
   const { pathname } = request.nextUrl;

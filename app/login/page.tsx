@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { Banner } from "@/components/banner";
 import { LoginForm } from "@/components/login-form";
-import { isSupabaseConfigured } from "@/lib/constants";
+import { supabaseConfigError } from "@/lib/constants";
 
 export const metadata = { title: "Sign in" };
 
@@ -25,5 +25,5 @@ export default function LoginPage({
 async function LoginContent({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const params = await searchParams;
   const next = params.next?.startsWith("/") && !params.next.startsWith("//") ? params.next : "/subjects";
-  return <LoginForm next={next} demo={!isSupabaseConfigured()} />;
+  return <LoginForm next={next} setupError={supabaseConfigError()} />;
 }

@@ -1,28 +1,12 @@
 import "server-only";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { isSupabaseConfigured, SESSION_COOKIE } from "@/lib/constants";
+import { isSupabaseConfigured } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import type { Role, SessionUser } from "@/lib/types";
 
-function parseSession(raw: string | undefined): SessionUser | null {
-  if (!raw) return null;
-  try {
-    const value = JSON.parse(raw) as Partial<SessionUser>;
-    if (typeof value.id !== "string" || typeof value.email !== "string") return null;
-    if (value.role !== "admin" && value.role !== "student") return null;
-    return { id: value.id, email: value.email, role: value.role };
-  } catch {
-    return null;
-  }
-}
-
 export async function getOptionalUser(): Promise<SessionUser | null> {
-  if (!isSupabaseConfigured()) {
-    const jar = await cookies();
-    return parseSession(jar.get(SESSION_COOKIE)?.value);
-  }
+  if (!isSupabaseConfigured()) return null;
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();

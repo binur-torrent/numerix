@@ -11,17 +11,12 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Until Supabase is connected, sign-in stays on this browser:
-
-- `admin@numerix.app` and any password of 6+ characters opens the admin page
-- any other email is a student
-
-Edits made in admin are stored in `.data/store.json`.
+Sign-in and registration use Supabase. Copy `.env.example` to `.env.local` and set the project URL and the publishable key before creating an account.
 
 ## Connect Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Copy `.env.example` to `.env.local` and fill in the project URL and anon key.
+2. Copy `.env.example` to `.env.local`. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the publishable key (`sb_publishable_…`).
 3. In the Supabase SQL editor, run `supabase/schema.sql`.
 4. Create an account in the app, then make it an admin:
 

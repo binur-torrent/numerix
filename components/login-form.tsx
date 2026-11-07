@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { authenticate } from "@/lib/actions";
 
-export function LoginForm({ next, demo }: { next: string; demo: boolean }) {
+export function LoginForm({ next, setupError }: { next: string; setupError?: string | null }) {
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [state, action, pending] = useActionState(authenticate, null);
 
@@ -37,10 +37,12 @@ export function LoginForm({ next, demo }: { next: string; demo: boolean }) {
             className="mt-1.5 h-11 w-full rounded-xl border border-line bg-white px-3 outline-none"
           />
         </label>
-        {state?.error ? <p className="text-sm text-orange">{state.error}</p> : null}
+        {setupError ? <p className="text-sm leading-6 text-orange">{setupError}</p> : null}
+        {state?.error ? <p className="text-sm leading-6 text-orange">{state.error}</p> : null}
+        {state?.notice ? <p className="text-sm leading-6 text-navy">{state.notice}</p> : null}
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || Boolean(setupError)}
           className="h-11 w-full rounded-xl bg-navy text-sm font-medium text-white disabled:opacity-60"
         >
           {pending ? "Please wait" : mode === "sign-in" ? "Sign in" : "Create account"}
@@ -53,12 +55,6 @@ export function LoginForm({ next, demo }: { next: string; demo: boolean }) {
       >
         {mode === "sign-in" ? "Need an account?" : "Already have an account?"}
       </button>
-      {demo ? (
-        <p className="mt-6 text-sm leading-6 text-muted">
-          Supabase is not connected yet. Any password of at least 6 characters signs you in on this
-          browser. Use admin@numerix.app for the admin page, or any other email to study.
-        </p>
-      ) : null}
     </div>
   );
 }
